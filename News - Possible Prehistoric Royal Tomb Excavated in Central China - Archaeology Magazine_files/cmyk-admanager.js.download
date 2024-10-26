@@ -1,0 +1,194 @@
+(function() {
+  const $ = jQuery.noConflict();
+  var adSlots = {};
+  var adManagerId = cmykpressAdManager.googleAdId;
+  var injectionAds = ["am_injection_ad_1","am_injection_ad_2","am_injection_ad_3","am_injection_ad_4","am_injection_ad_5","am_injection_ad_6","am_injection_ad_7","am_injection_ad_8","am_injection_ad_9"];
+  
+  
+  $(document).on('ready', function(){
+  console.log("hi im here");
+  if($(".single-post").length != 0 || $(".single-article").length != 0 ){
+	  injectAds();
+  }
+check_for_ads_in_page();
+
+});
+
+
+//DFP Scripts
+const check_for_ads_in_page = function (isHeaderBanner = false){
+	window.googletag = window.googletag || {cmd: []};
+  console.log("checking for ads");
+  var started = false;
+	const selector = isHeaderBanner ? '.dfp_block[data-adsize="header-banner"]' : '.dfp_block:not([data-adsize="header-banner"])';
+	console.log(selector);
+	
+  if($(selector).length > 0){
+		$(selector).each(function(){
+			var adSlug;
+			var adPagetype;
+			var adCats;
+			var toplineCats;
+			var loop = true;
+			started = true;
+		var adData = $(this).data();
+		console.log(adData);
+		var adId = adData.adunit;
+		//Get the categories
+		  var adData = $(this).data();
+			if(adData.cats.split(",").length == 1){
+			 adCats = adData.cats;
+			}else{
+			   adCats = adData.cats.split(",");
+			}
+			if (loop){toplineCats = adCats;}
+			loop = false;
+			console.log("this is toplinCates "+toplineCats);
+			//get the slug
+			adSlug = adData.slug;
+			//get the page type
+			adPagetype = adData.pagetype;
+			
+		$(this).append("<div id='"+adId+"'></div>");
+		googletag.cmd.push(function() {
+			console.log(googletag);
+			switch (adData.adsize) {
+				case 'header-banner':
+				mapping = googletag.sizeMapping().
+				addSize([850, 400], [728, 90]).
+				addSize([0, 0], [320, 40]).
+				build();
+				break;
+				
+				case 'full-width-banner':
+				 mapping = googletag.sizeMapping().
+			  addSize([1280, 400], [[970, 90],[970, 250]]).
+			  addSize([850, 400], [728, 90]).
+			  addSize([0, 0], [300, 250]).
+			  //addSize([0, 0], [88, 31]).
+			  // Fits browsers of any size smaller than 640 x 480
+			  build();
+			  break;
+			  case 'inline-banner':
+				   mapping = googletag.sizeMapping().
+				addSize([850, 400], [728, 90]).
+				addSize([0, 0], [300, 250]).
+				//addSize([0, 0], [88, 31]).
+				// Fits browsers of any size smaller than 640 x 480
+				build();
+				break;
+		
+			  case 'square':
+			   mapping = googletag.sizeMapping().
+			  addSize([0, 0], [300, 250]).
+			  //addSize([0, 0], [88, 31]).
+			  // Fits browsers of any size smaller than 640 x 480
+			  build();
+			  
+			  break;
+			  
+			  case 'skyscraper':
+			   mapping = googletag.sizeMapping().
+			  addSize([768, 500], [300, 600]).
+			  addSize([500, 500], [300, 250]).
+			  //addSize([0, 0], [88, 31]).
+			  // Fits browsers of any size smaller than 640 x 480
+			  build();
+			  
+			  break;
+			  
+				default:
+			  
+			  }
+			adSlots[adData.adunit] = googletag
+				.defineSlot(
+					'/'+adManagerId+'/'+adData.adunit, ['300, 250'], adData.adunit)
+				.addService(googletag.pubads());
+				googletag.enableServices();
+				adSlots[adData.adunit].defineSizeMapping(mapping);
+				console.log(adSlots);
+
+		  });
+		
+	  
+		  googletag.cmd.push(function() {
+						  
+						  if(adCats){
+					adSlots[adData.adunit].setTargeting('categories', adCats);
+				}
+				if(adSlug){
+					adSlots[adData.adunit].setTargeting('slug', adSlug);
+				}
+				if(adPagetype){
+					adSlots[adData.adunit].setTargeting('pagetype', adPagetype);
+				}
+			googletag.display(adSlots[adData.adunit]);
+		});
+		
+		  if(adData.reload){
+			  console.log("refreshing");
+						setInterval(function(){
+			  googletag.cmd.push(function() {
+				  googletag.pubads().refresh([adSlots[adData.adunit]]);
+				});
+		  },40000);
+	  }
+		});
+	}
+}
+
+window.check_for_ads_in_page = check_for_ads_in_page;
+
+
+function injectAds(){
+console.log("injecting");
+if($(".page-content").length != 0){
+  var tags = $(".page-content").children();
+  var adCount = 10;
+  var currentAdCount = 0;
+  var maxAds = injectionAds.length;
+  var maxDistanceBetweenItems = 7;
+console.log(tags);
+
+  //check if the article is long.. if so spread the ads farther out.. based on the count.
+  if(tags.length > maxAds*maxDistanceBetweenItems){
+	maxDistanceBetweenItems = Math.floor(tags.length/maxAds);
+	console.log("spreading Ads");
+	console.log(maxDistanceBetweenItems);
+  }
+  
+  //get infd from other ads on the screen:
+  if($('.dfp_block').length > 0){
+	  console.log("getting information");
+	  var firstAd = $('.dfp_block').first();
+	  console.log(firstAd);
+	  var adData = firstAd.data();
+	  var adCats = [];
+	  if(adData.cats.split(",").length == 1){
+	   adCats = adData.cats;
+	  }else{
+		 adCats = adData.cats.split(",");
+	  }
+	  adSlug = adData.slug;
+	  //get the page type
+	  adPagetype = adData.pagetype;  
+  }
+
+var adUnit = 0;
+$.each(tags,function(x,i){
+  adCount++;
+if(adCount % maxDistanceBetweenItems == 0){
+	console.log("desktop injection");
+$(i).after('<div class="ad-block-container inline-banner"><div id="dfp_block_'+injectionAds[adUnit]+'" class="dfp_adUnit dfp_block" data-reload="true" data-adsize="inline-banner" data-adunit="'+injectionAds[adUnit]+'" data-pagetype="'+adPagetype+'" data-cats="'+adCats+'" data-slug="'+adSlug+'"></div></div>');
+adUnit++;
+}
+});
+
+}
+
+}
+
+
+
+
+})();

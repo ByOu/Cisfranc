@@ -1,0 +1,92 @@
+(function() {
+  const $ = jQuery.noConflict();
+
+  $(document).on('ready', function(){
+    /* CAMPAIGN POPUP SCRIPTS */
+
+    const campaignAjaxArgs = {
+      action: 'get_cmykpress_campaign'
+    };
+
+    if ( window.localStorage.hasOwnProperty('campaigns_seen') ) {
+      campaignAjaxArgs.seen_campaigns = window.localStorage.campaigns_seen;
+    } if ( cmykpressCampaignsVars.hasOwnProperty('current_post') ) {
+      campaignAjaxArgs.current_post = cmykpressCampaignsVars.current_post;
+    }
+
+    $.post(cmykpressCampaignsVars.ajax_url, campaignAjaxArgs, function(data){
+      data = JSON.parse(data);
+      console.log(data);
+
+      if ( data.hasOwnProperty('campaign') && data.campaign !== false ) {
+        $('.skip-link').after($(data.campaign));
+        const popup = $('.popup-takeover');
+        setTimeout(function(){
+          if ( !popup.hasClass('is-style-corner') ) {
+            $('body').addClass('takeover-active');
+          }
+          $(popup).addClass('active');
+          setupPopup(popup);
+        }, 150);
+
+      }
+    });
+    /* END CAMPAIGN SCRIPTS */
+  });
+
+  function setupPopup(popup) {
+    const dismiss = popup.find('.popup-takeover__dismiss');
+    const campaignID = popup.data('campaignid');
+    const popupEl = popup.get(0);
+    const links = popup.find('a');
+
+    if ( $('#cookie-law-info-bar:visible').length ) {
+      $(popup).addClass('has-cookie-neighbor');
+      $('#cookie-law-info-bar').addClass('has-cmykpress-campaign-neighbor');
+    }
+
+    const logCampaign = () => {
+      if ( window.localStorage.hasOwnProperty('campaigns_seen') ) {
+        const seen = JSON.parse(window.localStorage.campaigns_seen);
+        if ( !seen.includes(campaignID) ) {
+          seen.push(campaignID);
+        }
+
+        window.localStorage.campaigns_seen = JSON.stringify(seen);
+      } else {
+        window.localStorage.campaigns_seen = JSON.stringify([campaignID]);
+      }
+    };
+
+    const dismissAction = () => {
+      $('body').removeClass('takeover-active');
+      logCampaign();
+
+      gsap.to(popup, {
+        opacity: 0,
+        onComplete: function(){
+          popup.remove();
+        }
+      });
+    };
+
+    dismiss.on('click', function(){
+      dismissAction();
+    });
+
+    if ( !popup.hasClass('is-style-corner')) {
+      $(window).on('click', function(e){
+        if (e.target !== popupEl && !popupEl.contains(e.target)) {
+          dismissAction();
+        }
+      });
+    }
+
+    links.on('click', function(e){
+      e.preventDefault();
+      const target = this.hasAttribute('target') ? $(this).attr('target') : '_self';
+      logCampaign();
+      window.open($(this).attr('href'), target);
+    });
+  }
+})();
